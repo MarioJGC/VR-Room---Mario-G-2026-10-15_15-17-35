@@ -36,6 +36,9 @@ public class WorldInMiniature : MonoBehaviour
     InputAction m_ToggleAction;
     bool m_Visible;
 
+    /// <summary>Se lanza al mostrar u ocultar la maqueta (para sincronizar el panel de ajustes).</summary>
+    public event System.Action<bool> VisibilityChanged;
+
     public bool Visible
     {
         get => m_Visible;
@@ -45,6 +48,7 @@ public class WorldInMiniature : MonoBehaviour
             m_ModelRoot.gameObject.SetActive(value);
             if (!value && m_TargetMarker != null)
                 m_TargetMarker.gameObject.SetActive(false);
+            VisibilityChanged?.Invoke(value);
         }
     }
 
