@@ -28,15 +28,20 @@ public class FloorConstraintTransformer : XRBaseGrabTransformer
     [Tooltip("Escala máxima respecto al tamaño original.")]
     [SerializeField, Range(1f, 5f)] float m_MaxScale = 2f;
 
+    [Tooltip("Impide sacar el mueble de la zona de su planta (PlacementArea del apartamento).")]
+    [SerializeField] bool m_KeepInsideArea = true;
+
     protected override RegistrationMode registrationMode => RegistrationMode.SingleAndMultiple;
 
     Vector3 m_OriginalScale;
     float m_GrabHeight;
     Quaternion m_GrabRotation;
+    Renderer[] m_Renderers;
 
     void Awake()
     {
         m_OriginalScale = transform.localScale;
+        m_Renderers = GetComponentsInChildren<Renderer>();
     }
 
     protected override void Start()
@@ -79,6 +84,44 @@ public class FloorConstraintTransformer : XRBaseGrabTransformer
             targetPose.rotation = KeepOnlyYaw(targetPose.rotation, m_GrabRotation);
 
         localScale = ClampScale(localScale);
+
+        if (m_KeepInsideArea && PlacementArea.Instance != null)
+            KeepInsideArea(ref targetPose);
+    }
+
+    /// <summary>Corrige la posición para que la huella del mueble no salga de la zona de su planta.</summary>
+    void KeepInsideArea(ref Pose targetPose)
+    {
+        if (!TryGetBounds(out var bounds))
+            return;
+
+        // Desplazamiento del pivote al centro visual, girado como quedará el mueble.
+        var offset = targetPose.rotation * Quaternion.Inverse(transform.rotation) * (bounds.center - transform.position);
+        var center = targetPose.position + offset;
+        var bottom = targetPose.position.y + (bounds.min.y - transform.position.y);
+        var clamped = PlacementArea.Instance.ClampCenter(center, bounds.extents, bottom);
+        targetPose.position += new Vector3(clamped.x - center.x, 0f, clamped.z - center.z);
+    }
+
+    bool TryGetBounds(out Bounds bounds)
+    {
+        bounds = default;
+        var found = false;
+        foreach (var r in m_Renderers)
+        {
+            if (r == null || !r.enabled)
+                continue;
+            if (!found)
+            {
+                bounds = r.bounds;
+                found = true;
+            }
+            else
+            {
+                bounds.Encapsulate(r.bounds);
+            }
+        }
+        return found;
     }
 
     /// <summary>

@@ -67,6 +67,19 @@ public static class NavigationSetup
         gravity.useGravity = true;
         log.Add("Gravedad activada (GravityProvider)");
 
+        // Cuerpo del jugador: el radio original (0,5 m = 1 m de ancho) no cabía por la escalera
+        // ni por la entrada al altillo, y se "subía" a la barandilla de cristal.
+        if (origin.TryGetComponent<CharacterController>(out var body))
+        {
+            Undo.RecordObject(body, "Cuerpo del jugador");
+            body.radius = 0.2f;
+            body.skinWidth = 0.02f;
+            body.stepOffset = 0.3f;
+            body.slopeLimit = 45f;
+            EditorUtility.SetDirty(body);
+            log.Add("CharacterController: radio 0,2 m (cabe por la escalera y la entrada al altillo)");
+        }
+
         // 2. Movimiento continuo con el joystick izquierdo
         var moveObject = locomotion.transform.Find("Move")?.gameObject;
         if (moveObject == null)

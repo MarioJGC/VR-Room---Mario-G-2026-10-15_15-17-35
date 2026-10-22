@@ -7,7 +7,9 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using UnityEngine.XR.Interaction.Toolkit.Inputs.Readers;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.UI;
 
@@ -23,6 +25,7 @@ public static class SettingsPanelSetup
     const string k_RootName = "Menus";
     const string k_PanelName = "Navigation Settings Panel";
     const string k_Fx = "Assets/_Course Library/Audio/FX/";
+    const string k_InputActionsPath = "Assets/Samples/XR Interaction Toolkit/3.1.3/Starter Assets/XRI Default Input Actions.inputactions";
     const int k_UILayer = 5;
 
     // Tamaño del panel en unidades de UI (1 unidad = 1 mm en el mundo).
@@ -111,16 +114,36 @@ public static class SettingsPanelSetup
         }
     }
 
+    /// <summary>
+    /// Activa la UI en los rayos y conecta sus entradas de UI a las acciones de XRI:
+    /// gatillo = pulsar (UI Press) y joystick = desplazar (UI Scroll).
+    /// Los rayos originales del curso tenían estas entradas sin acción asignada.
+    /// </summary>
     static void EnableRayUI(Scene scene, List<string> log)
     {
+        var actions = AssetDatabase.LoadAllAssetsAtPath(k_InputActionsPath).OfType<InputActionReference>().ToList();
+        InputActionReference Action(string fullName) => actions.FirstOrDefault(a => a.name == fullName);
+
         foreach (var ray in FindAll<XRRayInteractor>(scene))
         {
-            if (ray.enableUIInteraction)
-                continue;
-            Undo.RecordObject(ray, "Activar UI en el rayo");
+            var isLeft = ray.handedness == InteractorHandedness.Left
+                         || (ray.handedness != InteractorHandedness.Right && ray.transform.GetComponentsInParent<Transform>(true).Any(t => t.name.Contains("Left")));
+            var map = isLeft ? "XRI Left Interaction" : "XRI Right Interaction";
+
+            Undo.RecordObject(ray, "Configurar UI en el rayo");
             ray.enableUIInteraction = true;
+
+            ray.uiPressInput.inputSourceMode = XRInputButtonReader.InputSourceMode.InputActionReference;
+            ray.uiPressInput.inputActionReferencePerformed = Action(map + "/UI Press");
+            ray.uiPressInput.inputActionReferenceValue = Action(map + "/UI Press Value");
+
+            ray.uiScrollInput.inputSourceMode = XRInputValueReader.InputSourceMode.InputActionReference;
+            ray.uiScrollInput.inputActionReference = Action(map + "/UI Scroll");
             EditorUtility.SetDirty(ray);
-            log.Add($"Interacción con UI activada en '{ray.name}'");
+
+            log.Add(ray.uiPressInput.inputActionReferencePerformed != null
+                ? $"'{ray.name}': UI activada, gatillo conectado a '{map}/UI Press'"
+                : $"AVISO: no se encontró '{map}/UI Press' para '{ray.name}'");
         }
     }
 
@@ -197,6 +220,7 @@ public static class SettingsPanelSetup
         var toggle = track.gameObject.AddComponent<Toggle>();
         toggle.targetGraphic = trackImage;
         toggle.graphic = fillImage;
+        toggle.colors = HoverColors(toggle.colors);
         return toggle;
     }
 
@@ -236,6 +260,7 @@ public static class SettingsPanelSetup
         slider.minValue = min;
         slider.maxValue = max;
         slider.wholeNumbers = wholeNumbers;
+        slider.colors = HoverColors(slider.colors);
 
         var value = Label(row, "-", 24, FontStyles.Bold, TextAlignmentOptions.Right, k_Text);
         value.rectTransform.anchorMin = new Vector2(1f, 0f);
@@ -265,16 +290,26 @@ public static class SettingsPanelSetup
         var image = AddImage(rect.gameObject, s_Rounded, color);
         var button = rect.gameObject.AddComponent<Button>();
         button.targetGraphic = image;
-        var colors = button.colors;
-        colors.highlightedColor = new Color(1.25f, 1.25f, 1.25f);   // aclara al apuntar
-        colors.pressedColor = new Color(0.8f, 0.8f, 0.8f);
-        button.colors = colors;
+        button.colors = HoverColors(button.colors);
         var label = Label(rect, text, fontSize, FontStyles.Bold, TextAlignmentOptions.Center, k_Text);
         Stretch(label.rectTransform, 0f, 1f);
         return button;
     }
 
     // ------------------------------------------------------------------ Ayudantes de UI
+
+    /// <summary>Colores de estado bien visibles en VR: se aclara al apuntar y se oscurece al pulsar.</summary>
+    static ColorBlock HoverColors(ColorBlock colors)
+    {
+        colors.normalColor = Color.white;
+        colors.highlightedColor = new Color(1.6f, 1.6f, 1.6f);
+        colors.selectedColor = Color.white;
+        colors.pressedColor = new Color(0.7f, 0.7f, 0.7f);
+        colors.disabledColor = new Color(0.5f, 0.5f, 0.5f, 0.5f);
+        colors.colorMultiplier = 1.5f;
+        colors.fadeDuration = 0.05f;
+        return colors;
+    }
 
     static RectTransform CreateRect(string name, Transform parent)
     {

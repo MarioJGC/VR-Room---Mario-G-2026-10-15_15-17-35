@@ -81,6 +81,13 @@ public static class ApartmentBuilder
         s_Furniture = CreateChild(s_Root, "Furniture");
         s_Props = CreateChild(s_Root, "Props");
 
+        // Zonas donde se pueden mover los muebles: no salen de la casa ni del altillo.
+        root.AddComponent<PlacementArea>().SetZones(new[]
+        {
+            new PlacementArea.Zone { floorHeight = 0f, rect = new Rect(k_MinX, k_MinZ, k_MaxX - k_MinX, k_MaxZ - k_MinZ) },
+            new PlacementArea.Zone { floorHeight = k_StoreyHeight, rect = new Rect(k_MinX, k_LoftStartZ, k_MaxX - k_MinX, k_MaxZ - k_LoftStartZ) },
+        });
+
         BuildFloors();
         BuildWalls();
         BuildStairs();
@@ -297,9 +304,10 @@ public static class ApartmentBuilder
         Box("Stringer", stairs, new Vector3(midX, k_StoreyHeight / 2f - 0.1f, openSideZ), new Vector3(length, 0.3f, 0.06f), s_Mat.Metal, slope, false);
 
         // Rampa invisible: el CharacterController la sube caminando y también sirve de zona de teletransporte.
+        // Va de (inicio, suelo) a (fin, altillo), así empieza y termina a ras, sin escalón.
         var ramp = new GameObject("Teleport_Stairs");
         ramp.transform.SetParent(stairs, false);
-        ramp.transform.localPosition = new Vector3(midX, k_StoreyHeight / 2f + rise / 2f, centerZ);
+        ramp.transform.localPosition = new Vector3(midX, k_StoreyHeight / 2f - 0.01f, centerZ);
         ramp.transform.localRotation = slope;
         var rampCollider = ramp.AddComponent<BoxCollider>();
         rampCollider.size = new Vector3(length, 0.02f, width);
