@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Video;
 using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion.Climbing;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
 
 /// <summary>
@@ -30,6 +31,11 @@ public static class ApartmentBuilder
     const float k_StairStartX = 2f, k_StairEndX = 6f;
     const float k_StairMinZ = 1f, k_StairMaxZ = k_LoftStartZ;
     const int k_StairSteps = 15;
+
+    // Escalera de mano del altillo a la azotea (pared del fondo, módulo sin ventana) y trampilla del techo.
+    const float k_LadderX = 5.6f;
+    const float k_HatchMinX = 4.9f, k_HatchMaxX = 6.3f, k_HatchMinZ = 4.9f;
+    const float k_RoofTop = 2f * k_StoreyHeight + 0.12f;   // losa (0,1) + tarima (0,02)
     static readonly Vector3 k_Origin = new Vector3(-0.44f, 0.3f, 0.01f);
 
     const string k_RootName = "Apartment";
@@ -92,6 +98,8 @@ public static class ApartmentBuilder
         BuildWalls();
         BuildStairs();
         BuildRailing();
+        BuildRoof();
+        BuildLadder();
         BuildLights();
         RelocateMirror(scene);
         RelocateDiningArea(scene);
@@ -189,7 +197,6 @@ public static class ApartmentBuilder
         Box("Floor_Ground", s_Structure, new Vector3(centerX, -0.05f, centerZ), new Vector3(width, 0.1f, depth), s_Mat.Floor);
         Box("Floor_Loft", s_Structure, new Vector3(centerX, k_StoreyHeight - 0.025f, loftCenterZ), new Vector3(width, 0.05f, loftDepth), s_Mat.Floor);
         Box("Ceiling_UnderLoft", s_Structure, new Vector3(centerX, k_StoreyHeight - 0.125f, loftCenterZ), new Vector3(width, 0.15f, loftDepth), s_Mat.Ceiling);
-        Box("Roof", s_Structure, new Vector3(centerX, 2f * k_StoreyHeight + 0.05f, centerZ), new Vector3(width + 0.2f, 0.1f, depth + 0.2f), s_Mat.Ceiling);
 
         // Rellano de la escalera (esquina entre el final de la escalera y la pared derecha).
         var landingCenter = new Vector3((k_StairEndX + k_MaxX) / 2f, 0f, (k_StairMinZ + k_StairMaxZ) / 2f);
@@ -346,6 +353,100 @@ public static class ApartmentBuilder
         Box("Railing_Top", parent, new Vector3(centerX, k_StoreyHeight + height + 0.025f, z), new Vector3(length + 0.05f, 0.05f, 0.06f), s_Mat.Metal);
         for (var x = x0 + 0.05f; x <= x1; x += 1.5f)
             Box("Railing_Post", parent, new Vector3(x, k_StoreyHeight + height / 2f, z), new Vector3(0.05f, height, 0.05f), s_Mat.Metal, collider: false);
+    }
+
+    /// <summary>
+    /// Techo con trampilla y azotea transitable: tarima de madera, muro perimetral,
+    /// barandillas a los lados de la trampilla y zona de teletransporte.
+    /// Todas las piezas empiezan por "Roof" para que la maqueta las pueda quitar.
+    /// </summary>
+    static void BuildRoof()
+    {
+        var roof = CreateChild(s_Structure, "Roof");
+        const float e = 0.1f;   // el techo sobresale por encima de los muros
+        var slabY = 2f * k_StoreyHeight + 0.05f;
+
+        void RoofPiece(float x0, float x1, float z0, float z1)
+        {
+            var cx = (x0 + x1) / 2f;
+            var cz = (z0 + z1) / 2f;
+            Box("Roof_Slab", roof, new Vector3(cx, slabY, cz), new Vector3(x1 - x0, 0.1f, z1 - z0), s_Mat.Ceiling);
+            Box("Roof_Deck", roof, new Vector3(cx, k_RoofTop - 0.01f, cz), new Vector3(x1 - x0, 0.02f, z1 - z0), s_Mat.Floor, collider: false);
+        }
+
+        RoofPiece(k_MinX - e, k_MaxX + e, k_MinZ - e, k_HatchMinZ);
+        RoofPiece(k_MinX - e, k_HatchMinX, k_HatchMinZ, k_MaxZ + e);
+        RoofPiece(k_HatchMaxX, k_MaxX + e, k_HatchMinZ, k_MaxZ + e);
+        RoofPiece(k_HatchMinX, k_HatchMaxX, k_MaxZ, k_MaxZ + e);   // encima del muro del fondo
+
+        // Muro perimetral de la azotea.
+        const float parapet = 1.1f, t = 0.15f;
+        var y = k_RoofTop + parapet / 2f;
+        var width = k_MaxX - k_MinX + 2f * e;
+        var depth = k_MaxZ - k_MinZ + 2f * e;
+        var cxAll = (k_MinX + k_MaxX) / 2f;
+        var czAll = (k_MinZ + k_MaxZ) / 2f;
+        Box("Roof_Parapet", roof, new Vector3(cxAll, y, k_MaxZ + e - t / 2f), new Vector3(width, parapet, t), s_Mat.Wall);
+        Box("Roof_Parapet", roof, new Vector3(cxAll, y, k_MinZ - e + t / 2f), new Vector3(width, parapet, t), s_Mat.Wall);
+        Box("Roof_Parapet", roof, new Vector3(k_MinX - e + t / 2f, y, czAll), new Vector3(t, parapet, depth), s_Mat.Wall);
+        Box("Roof_Parapet", roof, new Vector3(k_MaxX + e - t / 2f, y, czAll), new Vector3(t, parapet, depth), s_Mat.Wall);
+
+        // Barandillas a los lados de la trampilla (el lado sur queda libre: es por donde se sale).
+        var hatchDepth = k_MaxZ - k_HatchMinZ;
+        var hatchCenterZ = (k_HatchMinZ + k_MaxZ) / 2f;
+        foreach (var x in new[] { k_HatchMinX - 0.02f, k_HatchMaxX + 0.02f })
+        {
+            Box("Roof_HatchRail_Glass", roof, new Vector3(x, k_RoofTop + 0.5f, hatchCenterZ), new Vector3(0.02f, 1f, hatchDepth), s_Mat.Glass);
+            Box("Roof_HatchRail_Top", roof, new Vector3(x, k_RoofTop + 1.025f, hatchCenterZ), new Vector3(0.06f, 0.05f, hatchDepth), s_Mat.Metal, collider: false);
+        }
+
+        TeleportSurface("Roof_Teleport", k_RoofTop - 0.01f,
+            new Rect(k_MinX, k_MinZ, k_MaxX - k_MinX, k_HatchMinZ - k_MinZ),
+            new Rect(k_MinX, k_HatchMinZ, k_HatchMinX - k_MinX, k_MaxZ - k_HatchMinZ),
+            new Rect(k_HatchMaxX, k_HatchMinZ, k_MaxX - k_HatchMaxX, k_MaxZ - k_HatchMinZ));
+
+        s_Log.Add($"Azotea a {k_RoofTop:0.00} m con muro perimetral y trampilla");
+    }
+
+    /// <summary>
+    /// Escalera de mano vertical del altillo a la azotea (como la "Ladder" de Unity-VR-Basics-2022):
+    /// dos largueros y peldaños cada 30 cm, sobresale 1 m por encima de la azotea para poder agarrarla.
+    /// Se escala con ClimbInteractable (capa de interacción "Climb", solo manos cercanas).
+    /// </summary>
+    static void BuildLadder()
+    {
+        var ladder = new GameObject("Ladder");
+        ladder.transform.SetParent(s_Root, false);
+        ladder.transform.localPosition = new Vector3(k_LadderX, k_StoreyHeight, k_MaxZ - 0.15f);
+
+        var height = k_RoofTop + 1f - k_StoreyHeight;
+        foreach (var x in new[] { -0.25f, 0.25f })
+            Box("Ladder_Side", ladder.transform, new Vector3(x, height / 2f, 0f), new Vector3(0.05f, height, 0.05f), s_Mat.Metal);
+
+        var rungs = 0;
+        for (var y = 0.3f; y < height - 0.05f; y += 0.3f)
+        {
+            var rung = GameObject.CreatePrimitive(PrimitiveType.Cylinder);   // incluye CapsuleCollider
+            rung.name = "Ladder_Rung";
+            rung.transform.SetParent(ladder.transform, false);
+            rung.transform.localPosition = new Vector3(0f, y, 0f);
+            rung.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            rung.transform.localScale = new Vector3(0.04f, 0.25f, 0.04f);
+            rung.GetComponent<MeshRenderer>().sharedMaterial = s_Mat.Metal;
+            rungs++;
+        }
+
+        var climb = ladder.AddComponent<ClimbInteractable>();
+        climb.interactionLayers = InteractionLayerUtility.EnsureLayer("Climb");
+        ladder.AddComponent<HoverFeedback>();
+
+        var exit = new GameObject("Ladder_Exit").transform;
+        exit.SetParent(s_Root, false);
+        exit.localPosition = new Vector3(k_LadderX, k_RoofTop, k_HatchMinZ - 0.6f);
+        exit.localRotation = Quaternion.LookRotation(Vector3.back);   // mirando hacia la ciudad, de espaldas a la trampilla
+        ladder.AddComponent<LadderTopExit>().Configure(exit, LoadAsset<AudioClip>(k_AudioRoot + "FX/SFX_UI_Quick_2.ogg"));
+
+        s_Log.Add($"Escalera de mano de {height:0.0} m ({rungs} peldaños) del altillo a la azotea");
     }
 
     static void BuildLights()

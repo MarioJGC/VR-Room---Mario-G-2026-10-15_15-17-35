@@ -7,8 +7,11 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
+using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Readers;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion.Climbing;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Gravity;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Movement;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
@@ -109,13 +112,69 @@ public static class NavigationSetup
             Undo.AddComponent<LocomotionSettings>(locomotion);
         log.Add("LocomotionSettings añadido (giro por saltos/continuo, velocidad, pausa al sostener objetos)");
 
-        // 4. Maqueta
+        // 4. Escalada (escalera de mano a la azotea)
+        SetupClimbing(scene, locomotion, mediator, leftHand, log);
+
+        // 5. Maqueta
         BuildMiniature(scene, apartment, leftHand, log);
 
         Undo.CollapseUndoOperations(undoGroup);
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         Debug.Log("<b>[Navegación]</b> Configurada y escena guardada:\n- " + string.Join("\n- ", log));
+    }
+
+    /// <summary>
+    /// ClimbProvider en la locomoción y un interactor cercano (XRDirectInteractor) en cada mano,
+    /// limitado a la capa "Climb": con el grip se agarran los peldaños y, al mover la mano, el cuerpo sube.
+    /// </summary>
+    static void SetupClimbing(Scene scene, GameObject locomotion, LocomotionMediator mediator, GameObject leftHand, List<string> log)
+    {
+        var climbObject = locomotion.transform.Find("Climb")?.gameObject;
+        if (climbObject == null)
+        {
+            climbObject = new GameObject("Climb");
+            Undo.RegisterCreatedObjectUndo(climbObject, "Crear Climb");
+            climbObject.transform.SetParent(locomotion.transform, false);
+        }
+        if (!climbObject.TryGetComponent<ClimbProvider>(out var climb))
+            climb = Undo.AddComponent<ClimbProvider>(climbObject);
+        Undo.RecordObject(climb, "Escalada");
+        climb.mediator = mediator;
+        climb.enableGravityOnClimbEnd = true;
+        EditorUtility.SetDirty(climb);
+
+        var climbLayer = InteractionLayerUtility.EnsureLayer("Climb");
+        var rightHand = FindByName(scene, "Right Hand Controller");
+        AddClimbInteractor(leftHand, "Left Climb Interactor", InteractorHandedness.Left, "XRI Left Interaction", climbLayer);
+        if (rightHand != null)
+            AddClimbInteractor(rightHand, "Right Climb Interactor", InteractorHandedness.Right, "XRI Right Interaction", climbLayer);
+
+        log.Add("Escalada: ClimbProvider + interactor cercano en cada mano (grip para agarrar los peldaños)");
+    }
+
+    static void AddClimbInteractor(GameObject hand, string name, InteractorHandedness handedness, string actionMap, InteractionLayerMask layer)
+    {
+        var existing = hand.transform.Find(name);
+        if (existing != null)
+            Undo.DestroyObjectImmediate(existing.gameObject);
+
+        var go = new GameObject(name);
+        Undo.RegisterCreatedObjectUndo(go, "Crear " + name);
+        go.transform.SetParent(hand.transform, false);
+
+        var sphere = go.AddComponent<SphereCollider>();
+        sphere.isTrigger = true;
+        sphere.radius = 0.1f;
+
+        var direct = go.AddComponent<XRDirectInteractor>();
+        direct.handedness = handedness;
+        direct.interactionLayers = layer;
+        direct.improveAccuracyWithSphereCollider = true;   // no necesita Rigidbody
+        direct.selectInput.inputSourceMode = XRInputButtonReader.InputSourceMode.InputActionReference;
+        direct.selectInput.inputActionReferencePerformed = FindActionReference(actionMap + "/Select");
+        direct.selectInput.inputActionReferenceValue = FindActionReference(actionMap + "/Select Value");
+        EditorUtility.SetDirty(direct);
     }
 
     static void BuildMiniature(Scene scene, GameObject apartment, GameObject leftHand, List<string> log)
@@ -173,8 +232,12 @@ public static class NavigationSetup
     /// <summary>Deja solo lo visual de la copia, más los colliders de las zonas de teletransporte (para apuntar).</summary>
     static void StripMiniature(GameObject copy)
     {
-        foreach (var t in copy.GetComponentsInChildren<Transform>(true).Where(t => t.name == "Roof").ToList())
-            Object.DestroyImmediate(t.gameObject);
+        // Sin techo ni azotea, para ver el interior desde arriba.
+        foreach (var t in copy.GetComponentsInChildren<Transform>(true).Where(t => t.name.StartsWith("Roof")).ToList())
+        {
+            if (t != null)
+                Object.DestroyImmediate(t.gameObject);
+        }
 
         var keep = new HashSet<Collider>(copy.GetComponentsInChildren<TeleportationArea>(true).SelectMany(a => a.GetComponents<Collider>()));
         foreach (var c in copy.GetComponentsInChildren<Collider>(true).Where(c => !keep.Contains(c)).ToList())
