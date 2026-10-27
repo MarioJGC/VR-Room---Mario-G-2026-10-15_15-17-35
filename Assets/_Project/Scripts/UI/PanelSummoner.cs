@@ -2,13 +2,19 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Abre y cierra un panel flotante delante del usuario con el botón X del mando izquierdo
-/// (en el simulador: tecla 1 con el mando izquierdo activo).
-/// Cada vez que se abre, se coloca delante de la cabeza, a la altura del pecho.
+/// Abre y cierra un panel flotante delante del usuario con un botón del mando izquierdo:
+/// X = botón primario (simulador: tecla 1), Y = botón secundario (simulador: tecla 2).
+/// Cada vez que se abre, se coloca delante de la cabeza, a la altura del pecho,
+/// y se cierran los demás paneles para que no se superpongan.
 /// </summary>
 public class PanelSummoner : MonoBehaviour
 {
+    public enum LeftButton { X, Y }
+
+    static readonly System.Collections.Generic.List<PanelSummoner> s_All = new System.Collections.Generic.List<PanelSummoner>();
+
     [SerializeField] GameObject m_Panel;
+    [SerializeField] LeftButton m_Button = LeftButton.X;
     [SerializeField] Transform m_Head;
     [SerializeField] float m_Distance = 0.7f;
     [SerializeField] float m_HeightOffset = -0.15f;
@@ -25,19 +31,23 @@ public class PanelSummoner : MonoBehaviour
         if (m_Head == null && Camera.main != null)
             m_Head = Camera.main.transform;
 
+        var usage = m_Button == LeftButton.X ? "PrimaryButton" : "SecondaryButton";
+        var control = m_Button == LeftButton.X ? "primaryButton" : "secondaryButton";
         m_ToggleAction = new InputAction("Toggle Panel", InputActionType.Button);
-        m_ToggleAction.AddBinding("<XRController>{LeftHand}/{PrimaryButton}");
-        m_ToggleAction.AddBinding("<XRController>{LeftHand}/primaryButton");
+        m_ToggleAction.AddBinding($"<XRController>{{LeftHand}}/{{{usage}}}");
+        m_ToggleAction.AddBinding($"<XRController>{{LeftHand}}/{control}");
     }
 
     void OnEnable()
     {
+        s_All.Add(this);
         m_ToggleAction.performed += OnTogglePerformed;
         m_ToggleAction.Enable();
     }
 
     void OnDisable()
     {
+        s_All.Remove(this);
         m_ToggleAction.performed -= OnTogglePerformed;
         m_ToggleAction.Disable();
     }
@@ -60,6 +70,12 @@ public class PanelSummoner : MonoBehaviour
 
     public void Open()
     {
+        foreach (var other in s_All)
+        {
+            if (other != this && other.IsOpen)
+                other.m_Panel.SetActive(false);
+        }
+
         if (m_Head != null)
         {
             var forward = Vector3.ProjectOnPlane(m_Head.forward, Vector3.up);
@@ -86,9 +102,10 @@ public class PanelSummoner : MonoBehaviour
             AudioSource.PlayClipAtPoint(clip, m_Panel.transform.position, 0.5f);
     }
 
-    public void Configure(GameObject panel, Transform head, AudioClip openClip, AudioClip closeClip)
+    public void Configure(GameObject panel, Transform head, AudioClip openClip, AudioClip closeClip, LeftButton button = LeftButton.X)
     {
         m_Panel = panel;
+        m_Button = button;
         m_Head = head;
         m_OpenClip = openClip;
         m_CloseClip = closeClip;

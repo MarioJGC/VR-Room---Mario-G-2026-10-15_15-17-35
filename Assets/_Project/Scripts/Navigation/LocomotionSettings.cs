@@ -20,7 +20,8 @@ public class LocomotionSettings : MonoBehaviour
 {
     public enum TurnStyle { Snap, Smooth }
 
-    const string k_PrefsPrefix = "VRRoom.Locomotion.";
+    // v2: el movimiento con joystick pasa a estar desactivado por defecto (se camina físicamente).
+    const string k_PrefsPrefix = "VRRoom.Locomotion.v2.";
 
     [Header("Proveedores (se buscan solos si están vacíos)")]
     [SerializeField] ContinuousMoveProvider m_Move;
@@ -28,7 +29,8 @@ public class LocomotionSettings : MonoBehaviour
     [SerializeField] ContinuousTurnProvider m_SmoothTurn;
 
     [Header("Valores por defecto")]
-    [SerializeField] bool m_ContinuousMove = true;
+    [Tooltip("Andar con el joystick izquierdo. Desactivado por defecto: se camina físicamente y se teletransporta.")]
+    [SerializeField] bool m_ContinuousMove = false;
     [SerializeField] TurnStyle m_TurnStyle = TurnStyle.Snap;
     [SerializeField, Range(0.5f, 4f)] float m_MoveSpeed = 1.5f;
     [SerializeField, Range(15f, 90f)] float m_SnapAngle = 45f;

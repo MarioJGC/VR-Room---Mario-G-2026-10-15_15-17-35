@@ -107,10 +107,23 @@ public static class NavigationSetup
             ? "Movimiento continuo con el joystick izquierdo (hacia donde miras)"
             : "AVISO: no se encontró la acción 'XRI Left Locomotion/Move'; revisa el Continuous Move Provider");
 
-        // 3. Ajustes de locomoción
-        if (!locomotion.TryGetComponent<LocomotionSettings>(out _))
-            Undo.AddComponent<LocomotionSettings>(locomotion);
-        log.Add("LocomotionSettings añadido (giro por saltos/continuo, velocidad, pausa al sostener objetos)");
+        // 3. Ajustes de locomoción: por defecto se camina físicamente (joystick de andar desactivado).
+        if (!locomotion.TryGetComponent<LocomotionSettings>(out var settings))
+            settings = Undo.AddComponent<LocomotionSettings>(locomotion);
+        var serializedSettings = new SerializedObject(settings);
+        serializedSettings.FindProperty("m_ContinuousMove").boolValue = false;
+        serializedSettings.ApplyModifiedProperties();
+        log.Add("LocomotionSettings: andar con joystick desactivado por defecto (se puede activar en el panel X)");
+
+        // Caminar físicamente: la altura sigue al suelo virtual (escalera, altillo, azotea).
+        if (!origin.TryGetComponent<RoomScaleFloorFollower>(out _))
+            Undo.AddComponent<RoomScaleFloorFollower>(origin.gameObject);
+        log.Add("RoomScaleFloorFollower: al caminar físicamente se sube y baja la escalera");
+
+        // Quita componentes cuyo script ya no existe (p. ej. el antiguo aviso de proximidad).
+        var removed = GameObjectUtility.RemoveMonoBehavioursWithMissingScript(origin.gameObject);
+        if (removed > 0)
+            log.Add($"Quitados {removed} componente(s) sin script del XR Origin");
 
         // 4. Escalada (escalera de mano a la azotea)
         SetupClimbing(scene, locomotion, mediator, leftHand, log);

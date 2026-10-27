@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Attachment;
@@ -26,9 +27,13 @@ public class FurnitureItem : MonoBehaviour
     [Tooltip("Nombre que se mostrará en el menú.")]
     [SerializeField] string m_DisplayName;
 
+    // Brillo suave: si es fuerte, tapa el color elegido en el menú (la emisión se suma al color).
+    // Los campos se renombraron para que no se usen los valores antiguos (más intensos) guardados en la escena.
     [Header("Resaltado")]
-    [SerializeField, ColorUsage(false, true)] Color m_HoverGlow = new Color(0.10f, 0.25f, 0.55f);
-    [SerializeField, ColorUsage(false, true)] Color m_SelectedGlow = new Color(0.05f, 0.45f, 0.15f);
+    [SerializeField, ColorUsage(false, true)] Color m_HoverGlowColor = new Color(0.05f, 0.12f, 0.28f);
+    [SerializeField, ColorUsage(false, true)] Color m_SelectedGlowColor = new Color(0.02f, 0.16f, 0.06f);
+    [Tooltip("Multiplica el brillo de selección cuando el mueble tiene un color aplicado, para que el color se vea bien.")]
+    [SerializeField, Range(0f, 1f)] float m_GlowWhenTinted = 0.35f;
 
     [Header("Vibración")]
     [SerializeField, Range(0f, 1f)] float m_HoverHaptic = 0.15f;
@@ -45,11 +50,21 @@ public class FurnitureItem : MonoBehaviour
     Pose m_InitialPose;
     Vector3 m_InitialScale;
 
+    static readonly List<FurnitureItem> s_All = new List<FurnitureItem>();
+
+    /// <summary>Todos los muebles de la escena, incluidos los ocultos (borrados desde el menú).</summary>
+    public static IReadOnlyList<FurnitureItem> All => s_All;
+
     public string DisplayName => string.IsNullOrEmpty(m_DisplayName) ? name : m_DisplayName;
     public bool IsSelected => m_IsSelected;
     public XRGrabInteractable GrabInteractable => m_Grab;
 
-    /// <summary>Color que multiplica la textura del mueble (lo usará el menú de colores).</summary>
+    /// <summary>True si se creó desde el menú (catálogo o duplicar): al resetear la sala se elimina.</summary>
+    public bool SpawnedAtRuntime { get; set; }
+
+    public bool HasTint => m_HasTint;
+
+    /// <summary>Color que multiplica la textura del mueble (menú de colores).</summary>
     public Color Tint
     {
         get => m_Tint;
@@ -59,6 +74,21 @@ public class FurnitureItem : MonoBehaviour
             m_HasTint = true;
             RefreshVisuals();
         }
+    }
+
+    /// <summary>Vuelve al color original del mueble.</summary>
+    public void ClearTint()
+    {
+        m_Tint = Color.white;
+        m_HasTint = false;
+        RefreshVisuals();
+    }
+
+    /// <summary>Toma la posición actual como la inicial (para muebles creados o duplicados desde el menú).</summary>
+    public void CaptureInitialPose()
+    {
+        m_InitialPose = new Pose(transform.position, transform.rotation);
+        m_InitialScale = transform.localScale;
     }
 
     // Se llama al añadir el componente en el editor: deja todo configurado.
@@ -77,7 +107,10 @@ public class FurnitureItem : MonoBehaviour
         m_Block = new MaterialPropertyBlock();
         m_InitialPose = new Pose(transform.position, transform.rotation);
         m_InitialScale = transform.localScale;
+        s_All.Add(this);
     }
+
+    void OnDestroy() => s_All.Remove(this);
 
     void OnEnable()
     {
@@ -109,9 +142,7 @@ public class FurnitureItem : MonoBehaviour
     {
         transform.SetPositionAndRotation(m_InitialPose.position, m_InitialPose.rotation);
         transform.localScale = m_InitialScale;
-        m_Tint = Color.white;
-        m_HasTint = false;
-        RefreshVisuals();
+        ClearTint();
     }
 
     void OnHoverEntered(HoverEnterEventArgs args)
@@ -130,6 +161,8 @@ public class FurnitureItem : MonoBehaviour
     void OnSelectEntered(SelectEnterEventArgs args)
     {
         SelectionManager.Instance.Select(this);
+        // Los objetos que estaban quietos encima vuelven a tener física (si no, flotarían al mover el mueble).
+        GrabbableProp.ReleaseResting(WorldBounds(gameObject));
         SendHaptic(args.interactorObject, m_SelectHaptic);
     }
 
@@ -144,7 +177,9 @@ public class FurnitureItem : MonoBehaviour
         if (m_Renderers == null)
             return;
 
-        var glow = m_IsSelected ? m_SelectedGlow : m_HoverCount > 0 ? m_HoverGlow : Color.black;
+        var glow = m_HoverCount > 0 ? m_HoverGlowColor : m_IsSelected ? m_SelectedGlowColor : Color.black;
+        if (m_HasTint)
+            glow *= m_GlowWhenTinted;
 
         m_Block.Clear();
         m_Block.SetColor(k_EmissionColor, glow);
@@ -173,18 +208,23 @@ public class FurnitureItem : MonoBehaviour
         body.isKinematic = true;                                 // los muebles no caen ni se empujan
         body.useGravity = false;
 
-        if (GetComponentInChildren<Collider>() == null)
-            AddFittedBoxCollider();
+        EnsureCollider(gameObject);
     }
 
-    /// <summary>Añade un BoxCollider que envuelve todas las mallas del objeto (para FBX sin collider).</summary>
-    void AddFittedBoxCollider()
+    /// <summary>
+    /// Si el objeto no tiene ningún collider, añade un BoxCollider que envuelve todas sus mallas
+    /// (para FBX sin collider). Debe llamarse antes de añadir el XRGrabInteractable en tiempo de ejecución.
+    /// </summary>
+    public static void EnsureCollider(GameObject target)
     {
-        var filters = GetComponentsInChildren<MeshFilter>();
+        if (target.GetComponentInChildren<Collider>() != null)
+            return;
+
+        var filters = target.GetComponentsInChildren<MeshFilter>();
         if (filters.Length == 0)
             return;
 
-        var toLocal = transform.worldToLocalMatrix;
+        var toLocal = target.transform.worldToLocalMatrix;
         var bounds = new Bounds();
         var initialized = false;
 
@@ -212,8 +252,20 @@ public class FurnitureItem : MonoBehaviour
             }
         }
 
-        var box = gameObject.AddComponent<BoxCollider>();
+        var box = target.AddComponent<BoxCollider>();
         box.center = bounds.center;
         box.size = bounds.size;
+    }
+
+    /// <summary>Bounds en el mundo de todas las mallas del objeto.</summary>
+    public static Bounds WorldBounds(GameObject target)
+    {
+        var renderers = target.GetComponentsInChildren<Renderer>();
+        if (renderers.Length == 0)
+            return new Bounds(target.transform.position, Vector3.zero);
+        var bounds = renderers[0].bounds;
+        for (var i = 1; i < renderers.Length; i++)
+            bounds.Encapsulate(renderers[i].bounds);
+        return bounds;
     }
 }

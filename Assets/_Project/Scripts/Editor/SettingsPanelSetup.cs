@@ -26,18 +26,26 @@ public static class SettingsPanelSetup
     const string k_PanelName = "Navigation Settings Panel";
     const string k_Fx = "Assets/_Course Library/Audio/FX/";
     const string k_InputActionsPath = "Assets/Samples/XR Interaction Toolkit/3.1.3/Starter Assets/XRI Default Input Actions.inputactions";
-    const int k_UILayer = 5;
+    internal const int k_UILayer = 5;
 
     // Tamaño del panel en unidades de UI (1 unidad = 1 mm en el mundo).
     const float k_Width = 640f, k_Height = 620f, k_Padding = 32f, k_RowHeight = 70f, k_FirstRowY = -110f;
 
-    static readonly Color k_Background = new Color(0.08f, 0.10f, 0.13f, 0.94f);
-    static readonly Color k_Text = new Color(0.93f, 0.95f, 0.97f);
-    static readonly Color k_SubtleText = new Color(0.65f, 0.70f, 0.76f);
-    static readonly Color k_Track = new Color(0.25f, 0.27f, 0.32f);
-    static readonly Color k_Accent = new Color(0.20f, 0.55f, 0.95f);
+    internal static readonly Color k_Background = new Color(0.08f, 0.10f, 0.13f, 0.94f);
+    internal static readonly Color k_Text = new Color(0.93f, 0.95f, 0.97f);
+    internal static readonly Color k_SubtleText = new Color(0.65f, 0.70f, 0.76f);
+    internal static readonly Color k_Track = new Color(0.25f, 0.27f, 0.32f);
+    internal static readonly Color k_Accent = new Color(0.20f, 0.55f, 0.95f);
 
-    static Sprite s_Rounded, s_Knob, s_Check;
+    internal static Sprite s_Rounded, s_Knob, s_Check;
+
+    /// <summary>Sprites de UI integrados en Unity (fondo redondeado, círculo, check). También los usa el menú de objetos.</summary>
+    internal static void LoadSprites()
+    {
+        s_Rounded = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+        s_Knob = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+        s_Check = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Checkmark.psd");
+    }
 
     [MenuItem("Tools/VR Room/Crear panel de ajustes de navegación")]
     static void Run()
@@ -52,9 +60,7 @@ public static class SettingsPanelSetup
             return;
         }
 
-        s_Rounded = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
-        s_Knob = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
-        s_Check = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Checkmark.psd");
+        LoadSprites();
 
         var log = new List<string>();
         Undo.SetCurrentGroupName("Crear panel de ajustes");
@@ -92,7 +98,7 @@ public static class SettingsPanelSetup
 
     // ------------------------------------------------------------------ Preparación de la escena
 
-    static void SetupEventSystem(Scene scene, List<string> log)
+    internal static void SetupEventSystem(Scene scene, List<string> log)
     {
         var eventSystem = FindAll<EventSystem>(scene).FirstOrDefault();
         if (eventSystem == null)
@@ -119,7 +125,7 @@ public static class SettingsPanelSetup
     /// gatillo = pulsar (UI Press) y joystick = desplazar (UI Scroll).
     /// Los rayos originales del curso tenían estas entradas sin acción asignada.
     /// </summary>
-    static void EnableRayUI(Scene scene, List<string> log)
+    internal static void EnableRayUI(Scene scene, List<string> log)
     {
         var actions = AssetDatabase.LoadAllAssetsAtPath(k_InputActionsPath).OfType<InputActionReference>().ToList();
         InputActionReference Action(string fullName) => actions.FirstOrDefault(a => a.name == fullName);
@@ -180,8 +186,8 @@ public static class SettingsPanelSetup
         var miniatureToggle = SwitchRow(panel.transform, 5, "Maqueta del apartamento");
 
         var hint = Label(panel.transform,
-            "Teletransporte: apunta al suelo y pulsa grip  ·  Andar: joystick izquierdo\n" +
-            "Maqueta: botón menú izquierdo  ·  Este panel: botón X",
+            "Camina físicamente  ·  Teletransporte: apunta al suelo y pulsa grip\n" +
+            "Maqueta: botón menú  ·  Ajustes: botón X  ·  Muebles: botón Y",
             20, FontStyles.Normal, TextAlignmentOptions.Left, k_SubtleText);
         Place(hint.rectTransform, k_Padding, -(k_Height - k_Padding - 56f), k_Width - 2 * k_Padding, 56f);
 
@@ -284,7 +290,7 @@ public static class SettingsPanelSetup
         return (a, b);
     }
 
-    static Button MakeButton(Transform parent, string text, Color color, float fontSize)
+    internal static Button MakeButton(Transform parent, string text, Color color, float fontSize)
     {
         var rect = CreateRect("Button_" + text, parent);
         var image = AddImage(rect.gameObject, s_Rounded, color);
@@ -299,7 +305,7 @@ public static class SettingsPanelSetup
     // ------------------------------------------------------------------ Ayudantes de UI
 
     /// <summary>Colores de estado bien visibles en VR: se aclara al apuntar y se oscurece al pulsar.</summary>
-    static ColorBlock HoverColors(ColorBlock colors)
+    internal static ColorBlock HoverColors(ColorBlock colors)
     {
         colors.normalColor = Color.white;
         colors.highlightedColor = new Color(1.6f, 1.6f, 1.6f);
@@ -311,7 +317,7 @@ public static class SettingsPanelSetup
         return colors;
     }
 
-    static RectTransform CreateRect(string name, Transform parent)
+    internal static RectTransform CreateRect(string name, Transform parent)
     {
         var go = new GameObject(name, typeof(RectTransform));
         go.layer = k_UILayer;
@@ -319,7 +325,7 @@ public static class SettingsPanelSetup
         return (RectTransform)go.transform;
     }
 
-    static Image AddImage(GameObject go, Sprite sprite, Color color, Image.Type type = Image.Type.Sliced)
+    internal static Image AddImage(GameObject go, Sprite sprite, Color color, Image.Type type = Image.Type.Sliced)
     {
         var image = go.AddComponent<Image>();
         image.sprite = sprite;
@@ -328,7 +334,7 @@ public static class SettingsPanelSetup
         return image;
     }
 
-    static TextMeshProUGUI Label(Transform parent, string text, float size, FontStyles style, TextAlignmentOptions alignment, Color color)
+    internal static TextMeshProUGUI Label(Transform parent, string text, float size, FontStyles style, TextAlignmentOptions alignment, Color color)
     {
         var rect = CreateRect("Text", parent);
         var tmp = rect.gameObject.AddComponent<TextMeshProUGUI>();
@@ -343,7 +349,7 @@ public static class SettingsPanelSetup
     }
 
     /// <summary>Coloca un rect anclado arriba a la izquierda (x hacia la derecha, y negativa hacia abajo).</summary>
-    static void Place(RectTransform rect, float x, float y, float width, float height)
+    internal static void Place(RectTransform rect, float x, float y, float width, float height)
     {
         rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
         rect.pivot = new Vector2(0f, 1f);
@@ -352,14 +358,14 @@ public static class SettingsPanelSetup
     }
 
     /// <summary>Ocupa todo el alto del padre y el tramo horizontal [xMin, xMax] (0..1).</summary>
-    static void Stretch(RectTransform rect, float xMin, float xMax)
+    internal static void Stretch(RectTransform rect, float xMin, float xMax)
     {
         rect.anchorMin = new Vector2(xMin, 0f);
         rect.anchorMax = new Vector2(xMax, 1f);
         rect.offsetMin = rect.offsetMax = Vector2.zero;
     }
 
-    static IEnumerable<T> FindAll<T>(Scene scene) where T : Component
+    internal static IEnumerable<T> FindAll<T>(Scene scene) where T : Component
     {
         return scene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<T>(true));
     }

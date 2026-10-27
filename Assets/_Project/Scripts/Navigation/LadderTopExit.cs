@@ -1,5 +1,6 @@
 using Unity.XR.CoreUtils;
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Climbing;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
@@ -26,9 +27,56 @@ public class LadderTopExit : MonoBehaviour
 
     void Awake()
     {
+        // ClimbInteractable añade un Rigidbody obligatorio: sin esto la escalera cae y se empuja con los golpes.
+        if (TryGetComponent<Rigidbody>(out var body))
+        {
+            body.isKinematic = true;
+            body.useGravity = false;
+        }
+
         if (m_Climb == null) m_Climb = FindAnyObjectByType<ClimbProvider>();
         if (m_Teleport == null) m_Teleport = FindAnyObjectByType<TeleportationProvider>();
         if (m_Origin == null) m_Origin = FindAnyObjectByType<XROrigin>();
+
+        AddGrabZone();
+    }
+
+    /// <summary>
+    /// Los peldaños son barras de 4 cm y XRI solo deja agarrar a menos de 10 cm: sin tacto real cuesta acertar.
+    /// Se añade una zona invisible (trigger) delante de toda la escalera: basta con meter la mano y pulsar el grip.
+    /// </summary>
+    void AddGrabZone()
+    {
+        if (!TryGetComponent<ClimbInteractable>(out var climb) || transform.Find("Grab Zone") != null)
+            return;
+
+        var height = 0f;
+        foreach (var c in GetComponentsInChildren<Collider>(true))
+            height = Mathf.Max(height, transform.InverseTransformPoint(c.bounds.max).y);
+
+        var zoneObject = new GameObject("Grab Zone");
+        zoneObject.transform.SetParent(transform, false);
+        var zone = zoneObject.AddComponent<BoxCollider>();
+        zone.isTrigger = true;                                     // no bloquea objetos, rayos ni al jugador
+        zone.center = new Vector3(0f, height / 2f, -0.12f);         // hacia el lado por el que se sube
+        zone.size = new Vector3(0.8f, height, 0.35f);
+
+        // Registrar la zona en el interactuable (se vuelve a registrar si ya estaba activo).
+        if (!climb.colliders.Contains(zone))
+            climb.colliders.Add(zone);
+        climb.maxInteractionDistance = 0.15f;
+        if (climb.enabled)
+        {
+            climb.enabled = false;
+            climb.enabled = true;
+        }
+
+        // Los interactores de mano tienen que detectar triggers para ver la zona.
+        foreach (var hand in FindObjectsByType<XRDirectInteractor>(FindObjectsSortMode.None))
+        {
+            if ((hand.interactionLayers.value & climb.interactionLayers.value) != 0)
+                hand.physicsTriggerInteraction = QueryTriggerInteraction.Collide;
+        }
     }
 
     void Start()

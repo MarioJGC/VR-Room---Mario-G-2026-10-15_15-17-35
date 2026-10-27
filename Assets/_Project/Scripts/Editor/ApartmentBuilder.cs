@@ -438,6 +438,10 @@ public static class ApartmentBuilder
 
         var climb = ladder.AddComponent<ClimbInteractable>();
         climb.interactionLayers = InteractionLayerUtility.EnsureLayer("Climb");
+        // ClimbInteractable exige un Rigidbody: fijo, para que la escalera no caiga ni se mueva.
+        var ladderBody = ladder.GetComponent<Rigidbody>();
+        ladderBody.isKinematic = true;
+        ladderBody.useGravity = false;
         ladder.AddComponent<HoverFeedback>();
 
         var exit = new GameObject("Ladder_Exit").transform;
