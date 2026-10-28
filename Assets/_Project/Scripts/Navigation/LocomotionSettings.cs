@@ -76,8 +76,6 @@ public class LocomotionSettings : MonoBehaviour
         set { m_SmoothTurnSpeed = Mathf.Clamp(value, 30f, 180f); ApplyAndSave(); }
     }
 
-    public void ToggleTurnStyle() => Turn = m_TurnStyle == TurnStyle.Snap ? TurnStyle.Smooth : TurnStyle.Snap;
-
     void Awake()
     {
         if (m_Move == null) m_Move = FindAnyObjectByType<ContinuousMoveProvider>(FindObjectsInactive.Include);

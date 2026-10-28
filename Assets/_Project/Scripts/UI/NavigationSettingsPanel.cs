@@ -133,28 +133,4 @@ public class NavigationSettingsPanel : MonoBehaviour
         if (m_ClickClip != null)
             AudioSource.PlayClipAtPoint(m_ClickClip, transform.position, 0.4f);
     }
-
-    public void Configure(LocomotionSettings settings, WorldInMiniature miniature, PanelSummoner summoner, AudioClip clickClip)
-    {
-        m_Settings = settings;
-        m_Miniature = miniature;
-        m_Summoner = summoner;
-        m_ClickClip = clickClip;
-    }
-
-    public void BindControls(Toggle moveToggle, Slider moveSpeed, TMP_Text moveSpeedValue, Button snap, Button smooth,
-        Slider snapAngle, TMP_Text snapAngleValue, Slider turnSpeed, TMP_Text turnSpeedValue, Toggle miniature, Button close)
-    {
-        m_MoveToggle = moveToggle;
-        m_MoveSpeedSlider = moveSpeed;
-        m_MoveSpeedValue = moveSpeedValue;
-        m_SnapButton = snap;
-        m_SmoothButton = smooth;
-        m_SnapAngleSlider = snapAngle;
-        m_SnapAngleValue = snapAngleValue;
-        m_TurnSpeedSlider = turnSpeed;
-        m_TurnSpeedValue = turnSpeedValue;
-        m_MiniatureToggle = miniature;
-        m_CloseButton = close;
-    }
 }

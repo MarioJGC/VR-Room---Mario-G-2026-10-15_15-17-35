@@ -36,12 +36,6 @@ public class GrabbableProp : MonoBehaviour
     /// <summary>Todos los objetos pequeños de la escena (para "Resetear sala").</summary>
     public static IReadOnlyList<GrabbableProp> All => s_All;
 
-    public AudioClip ImpactClip
-    {
-        get => m_ImpactClip;
-        set => m_ImpactClip = value;
-    }
-
     void Reset() => ConfigureComponents();
 
     void Awake()

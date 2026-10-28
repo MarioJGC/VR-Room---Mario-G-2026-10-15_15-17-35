@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Video;
@@ -24,11 +23,7 @@ public class ToggleDevice : MonoBehaviour
     [SerializeField] AudioClip m_ToggleClip;
 
     Material m_ScreenOffMaterial;
-
-    public bool IsOn { get; private set; }
-
-    /// <summary>Se lanza al encender (true) o apagar (false).</summary>
-    public event Action<bool> Toggled;
+    bool m_IsOn;
 
     void Awake()
     {
@@ -38,13 +33,11 @@ public class ToggleDevice : MonoBehaviour
 
     void Start() => Apply(m_StartOn, false);
 
-    public void Toggle() => Apply(!IsOn, true);
-
-    public void SetOn(bool on) => Apply(on, true);
+    public void Toggle() => Apply(!m_IsOn, true);
 
     void Apply(bool on, bool playFeedback)
     {
-        IsOn = on;
+        m_IsOn = on;
 
         foreach (var light in m_Lights)
         {
@@ -69,30 +62,5 @@ public class ToggleDevice : MonoBehaviour
 
         if (playFeedback && m_ToggleClip != null)
             AudioSource.PlayClipAtPoint(m_ToggleClip, transform.position, 0.6f);
-
-        Toggled?.Invoke(on);
-    }
-
-    // --- Configuración desde scripts de editor (constructor del apartamento) ---
-
-    public void Configure(bool startOn, AudioClip toggleClip)
-    {
-        m_StartOn = startOn;
-        m_ToggleClip = toggleClip;
-    }
-
-    public void AddLight(Light light)
-    {
-        if (light != null && !m_Lights.Contains(light))
-            m_Lights.Add(light);
-    }
-
-    public void SetAudio(AudioSource audioSource) => m_Audio = audioSource;
-
-    public void SetVideo(VideoPlayer video, Renderer screen, Material screenOnMaterial)
-    {
-        m_Video = video;
-        m_Screen = screen;
-        m_ScreenOnMaterial = screenOnMaterial;
     }
 }

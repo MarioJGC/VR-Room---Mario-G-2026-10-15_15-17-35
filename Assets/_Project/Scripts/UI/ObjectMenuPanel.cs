@@ -107,14 +107,10 @@ public class ObjectMenuPanel : MonoBehaviour
     {
         var selected = Selected;
         if (selected == null)
-        {
-            Debug.Log("[Menú de muebles] Color pulsado, pero no hay ningún mueble seleccionado.");
             return;
-        }
 
         if (index == 0) selected.ClearTint();
         else selected.Tint = m_Colors[index];
-        Debug.Log($"[Menú de muebles] Color {(index == 0 ? "original" : "#" + ColorUtility.ToHtmlStringRGB(m_Colors[index]))} aplicado a '{selected.DisplayName}'.");
         Play(m_ClickClip);
     }
 
@@ -258,32 +254,5 @@ public class ObjectMenuPanel : MonoBehaviour
     {
         if (clip != null)
             AudioSource.PlayClipAtPoint(clip, transform.position, 0.5f);
-    }
-
-    // --- Configuración desde el script de editor ---
-
-    public void Configure(PanelSummoner summoner, Transform head, Transform spawnParent, AudioClip click, AudioClip spawn, AudioClip delete)
-    {
-        m_Summoner = summoner;
-        m_Head = head;
-        m_SpawnParent = spawnParent;
-        m_ClickClip = click;
-        m_SpawnClip = spawn;
-        m_DeleteClip = delete;
-    }
-
-    public void BindControls(TMP_Text selectionLabel, Button[] colorButtons, Color[] colors, Button duplicate, Button delete,
-        Button reset, Button resetRoom, Button close, Button[] catalogButtons, CatalogEntry[] catalog)
-    {
-        m_SelectionLabel = selectionLabel;
-        m_ColorButtons = colorButtons;
-        m_Colors = colors;
-        m_DuplicateButton = duplicate;
-        m_DeleteButton = delete;
-        m_ResetButton = reset;
-        m_ResetRoomButton = resetRoom;
-        m_CloseButton = close;
-        m_CatalogButtons = catalogButtons;
-        m_Catalog = catalog;
     }
 }

@@ -16,12 +16,6 @@ public class ActivateToggle : MonoBehaviour
 
     XRGrabInteractable m_Grab;
 
-    public ToggleDevice Target
-    {
-        get => m_Target;
-        set => m_Target = value;
-    }
-
     void Awake()
     {
         m_Grab = GetComponent<XRGrabInteractable>();

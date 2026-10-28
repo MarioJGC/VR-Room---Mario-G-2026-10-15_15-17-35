@@ -33,12 +33,6 @@ public class PlacementArea : MonoBehaviour
             Instance = null;
     }
 
-    public void SetZones(IEnumerable<Zone> zones)
-    {
-        m_Zones.Clear();
-        m_Zones.AddRange(zones);
-    }
-
     /// <summary>
     /// Devuelve el centro (mundo) corregido para que una huella de tamaño <paramref name="extents"/>
     /// quede dentro de la zona cuya altura de suelo está más cerca de <paramref name="worldBottomY"/>.

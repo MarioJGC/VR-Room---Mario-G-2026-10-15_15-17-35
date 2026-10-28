@@ -119,10 +119,4 @@ public class LadderTopExit : MonoBehaviour
         if (m_ExitClip != null)
             AudioSource.PlayClipAtPoint(m_ExitClip, m_ExitPoint.position, 0.5f);
     }
-
-    public void Configure(Transform exitPoint, AudioClip exitClip)
-    {
-        m_ExitPoint = exitPoint;
-        m_ExitClip = exitClip;
-    }
 }

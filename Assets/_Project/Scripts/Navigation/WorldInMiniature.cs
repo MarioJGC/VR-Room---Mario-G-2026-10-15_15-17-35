@@ -207,16 +207,4 @@ public class WorldInMiniature : MonoBehaviour
         if (clip != null)
             AudioSource.PlayClipAtPoint(clip, transform.position, 0.5f);
     }
-
-    // --- Configuración desde el script de editor ---
-
-    public void Configure(Transform worldRoot, Transform modelRoot, Transform playerMarker, Transform targetMarker, AudioClip toggleClip, AudioClip teleportClip)
-    {
-        m_WorldRoot = worldRoot;
-        m_ModelRoot = modelRoot;
-        m_PlayerMarker = playerMarker;
-        m_TargetMarker = targetMarker;
-        m_ToggleClip = toggleClip;
-        m_TeleportClip = teleportClip;
-    }
 }

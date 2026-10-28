@@ -17,12 +17,6 @@ public class ClickToggle : MonoBehaviour
 
     XRSimpleInteractable m_Interactable;
 
-    public ToggleDevice Target
-    {
-        get => m_Target;
-        set => m_Target = value;
-    }
-
     void Awake()
     {
         m_Interactable = GetComponent<XRSimpleInteractable>();

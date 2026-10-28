@@ -8,17 +8,19 @@ Estás en un apartamento de dos plantas con azotea, en medio de una pequeña ciu
 ## Controles
 
 ```
-   MANDO IZQUIERDO                 MANDO DERECHO
+   MANDO IZQUIERDO                    MANDO DERECHO
    ☰ Menú   → maqueta
    X        → panel de ajustes
    Y        → menú de muebles
-   Joystick → andar                Joystick → girar
-   Gatillo  → pulsar / usar        Gatillo  → pulsar / usar
-   Grip     → coger                Grip     → coger
+   Joystick → andar (opcional)        Joystick → girar
+   Gatillo  → pulsar / usar           Gatillo  → pulsar / usar
+   Grip     → coger / teletransporte  Grip     → coger / teletransporte
 ```
 
+- **Para moverte, camina de verdad**: el joystick no hace falta.
 - **Grip**: botón lateral, donde apoyas el dedo corazón.
 - **Gatillo**: botón del dedo índice.
+- Mientras sostienes un mueble, el **joystick** de ese mando sirve para acercarlo, alejarlo o girarlo.
 
 ---
 
@@ -48,11 +50,13 @@ Empieza en el centro del salón, junto al borde del altillo, y sube hacia la par
 ### Escalera de mano a la azotea
 Está en el altillo, en la pared del fondo, junto a la estantería gris.
 
-1. Acércate a **un brazo de distancia**.
-2. Acerca la mano a un peldaño (se ilumina y vibra) → **mantén el grip**.
-3. **Tira de la mano hacia abajo** para subir. Alterna las manos como en una escalera real: agarra el siguiente peldaño con una mano antes de soltar la otra.
+1. Ponte delante de la escalera, a **un brazo de distancia**.
+2. Acerca la mano a la escalera (a **menos de un palmo**): brilla un poco y el mando vibra → **mantén el grip**.
+3. **Tira de la mano hacia abajo** para subir. Alterna las manos como en una escalera real: agarra más arriba con una mano antes de soltar la otra.
 4. Cuando tu cabeza **asome por la trampilla**, suelta: apareces en la **azotea**, mirando a la ciudad.
-5. **Para bajar**: apunta con el rayo por la trampilla al suelo del altillo y teletranspórtate, o agarra los peldaños que sobresalen y baja.
+5. **Para bajar**: apunta con el rayo por la trampilla al suelo del altillo y teletranspórtate, o agarra la parte de la escalera que sobresale y baja.
+
+> Mientras escalas, no apuntes con el rayo al suelo: el grip también teletransporta y, al soltarlo, podrías saltar sin querer. Si sueltas las dos manos a mitad de camino, caes al altillo.
 
 ---
 
@@ -64,11 +68,11 @@ Sofás, mesas, estanterías, plantas, alfombras…
 
 | Acción | Cómo |
 |---|---|
-| Resaltar | Apunta con el rayo → brillo **azul** y vibración suave |
+| Resaltar | Apunta con el rayo → brillo **azul** suave y vibración ligera |
 | Mover | Mantén el **grip** y mueve el mando: el mueble se desliza por el suelo y no atraviesa las paredes |
 | Acercar o girar | Mientras lo sostienes → **joystick** del mismo mando (solo gira en horizontal) |
 | Cambiar el tamaño | **Grip con los dos mandos** sobre el mismo mueble → separa o junta las manos |
-| Seleccionar | Al soltarlo, queda marcado en **verde** |
+| Seleccionar | Al soltarlo, queda marcado con un ligero tono **verde** (es el mueble sobre el que actúa el menú **Y**) |
 
 ### Menú de muebles
 Pulsa **Y** en el mando izquierdo para abrirlo delante de ti. Apunta con el rayo y pulsa el **gatillo** en los botones.
@@ -116,8 +120,8 @@ Pulsa **X** en el mando izquierdo para abrirlo delante de ti. Apunta con el rayo
 
 | Ajuste | Qué hace |
 |---|---|
-| Movimiento continuo | Activa o desactiva andar con el joystick izquierdo |
-| Velocidad al andar | Lo rápido que avanzas |
+| Movimiento continuo | Activa o desactiva andar con el joystick izquierdo (desactivado por defecto: se camina físicamente) |
+| Velocidad al andar | Lo rápido que avanzas con el joystick |
 | Tipo de giro | **Por saltos** (más cómodo si te mareas) o **Continuo** |
 | Ángulo de giro | Grados de cada salto |
 | Velocidad de giro | Velocidad del giro continuo |

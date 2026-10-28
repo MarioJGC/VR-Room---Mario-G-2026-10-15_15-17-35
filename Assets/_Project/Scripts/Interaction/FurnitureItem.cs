@@ -3,7 +3,6 @@ using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Attachment;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
-using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
 /// <summary>
 /// Convierte un objeto en un mueble seleccionable y manipulable con el rayo.
@@ -56,8 +55,6 @@ public class FurnitureItem : MonoBehaviour
     public static IReadOnlyList<FurnitureItem> All => s_All;
 
     public string DisplayName => string.IsNullOrEmpty(m_DisplayName) ? name : m_DisplayName;
-    public bool IsSelected => m_IsSelected;
-    public XRGrabInteractable GrabInteractable => m_Grab;
 
     /// <summary>True si se creó desde el menú (catálogo o duplicar): al resetear la sala se elimina.</summary>
     public bool SpawnedAtRuntime { get; set; }
@@ -149,7 +146,7 @@ public class FurnitureItem : MonoBehaviour
     {
         m_HoverCount++;
         RefreshVisuals();
-        SendHaptic(args.interactorObject, m_HoverHaptic);
+        HoverFeedback.SendHaptic(args.interactorObject, m_HoverHaptic, m_HapticDuration);
     }
 
     void OnHoverExited(HoverExitEventArgs args)
@@ -163,13 +160,7 @@ public class FurnitureItem : MonoBehaviour
         SelectionManager.Instance.Select(this);
         // Los objetos que estaban quietos encima vuelven a tener física (si no, flotarían al mover el mueble).
         GrabbableProp.ReleaseResting(WorldBounds(gameObject));
-        SendHaptic(args.interactorObject, m_SelectHaptic);
-    }
-
-    void SendHaptic(IXRInteractor interactor, float amplitude)
-    {
-        if (amplitude > 0f && interactor is XRBaseInputInteractor inputInteractor)
-            inputInteractor.SendHapticImpulse(amplitude, m_HapticDuration);
+        HoverFeedback.SendHaptic(args.interactorObject, m_SelectHaptic, m_HapticDuration);
     }
 
     void RefreshVisuals()

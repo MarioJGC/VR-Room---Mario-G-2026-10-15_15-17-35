@@ -101,13 +101,4 @@ public class PanelSummoner : MonoBehaviour
         if (clip != null)
             AudioSource.PlayClipAtPoint(clip, m_Panel.transform.position, 0.5f);
     }
-
-    public void Configure(GameObject panel, Transform head, AudioClip openClip, AudioClip closeClip, LeftButton button = LeftButton.X)
-    {
-        m_Panel = panel;
-        m_Button = button;
-        m_Head = head;
-        m_OpenClip = openClip;
-        m_CloseClip = closeClip;
-    }
 }
