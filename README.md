@@ -5,6 +5,14 @@ Estás en un apartamento de dos plantas con azotea, en medio de una pequeña ciu
 
 ---
 
+## Instrucciones al empezar
+
+Al iniciar la aplicación aparece delante de ti un panel con el resumen de los controles.
+- Para cerrarlo, apunta al botón **Entendido** y pulsa el **gatillo**.
+- Para volver a verlo en cualquier momento, **pulsa el joystick izquierdo** (hacia dentro, como un botón).
+
+---
+
 ## Controles
 
 ```
@@ -13,6 +21,7 @@ Estás en un apartamento de dos plantas con azotea, en medio de una pequeña ciu
    X        → panel de ajustes
    Y        → menú de muebles
    Joystick → andar (opcional)        Joystick → girar
+   Pulsar joystick → instrucciones
    Gatillo  → pulsar / usar           Gatillo  → pulsar / usar
    Grip     → coger / teletransporte  Grip     → coger / teletransporte
 ```
