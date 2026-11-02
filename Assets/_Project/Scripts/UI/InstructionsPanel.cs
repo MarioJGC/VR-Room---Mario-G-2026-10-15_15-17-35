@@ -16,7 +16,8 @@ using UnityEngine.XR.Interaction.Toolkit.UI;
 public class InstructionsPanel : MonoBehaviour
 {
     const float k_Width = 1100f, k_Height = 760f, k_Padding = 40f;
-    const float k_Distance = 1.3f;
+    // A 1 m: lo bastante cerca para que no quede detrás de una pared o un mueble al reabrirlo.
+    const float k_Distance = 1.0f;
 
     static readonly Color k_Background = new Color(0.08f, 0.10f, 0.13f, 0.95f);
     static readonly Color k_Text = new Color(0.93f, 0.95f, 0.97f);
@@ -52,6 +53,8 @@ public class InstructionsPanel : MonoBehaviour
     Transform m_Head;
     GameObject m_Canvas;
     InputAction m_ToggleAction;
+    bool m_WasPressed;
+    float m_LastToggleTime = -1f;
 
     /// <summary>Crea el panel automáticamente en la escena del apartamento si no existe.</summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -69,9 +72,19 @@ public class InstructionsPanel : MonoBehaviour
         BuildCanvas();
 
         // Botón B del mando derecho (en el simulador: tecla 2 con el mando derecho activo).
-        m_ToggleAction = new InputAction("Toggle Instructions", InputActionType.Button);
-        m_ToggleAction.AddBinding("<XRController>{RightHand}/{SecondaryButton}");
-        m_ToggleAction.AddBinding("<XRController>{RightHand}/secondaryButton");
+        m_ToggleAction = new InputAction("Toggle Instructions", InputActionType.Button, "<XRController>{RightHand}/{SecondaryButton}");
+    }
+
+    // Lectura directa del botón B del mando, por si el evento del Input System no llega.
+    void Update()
+    {
+        var rightHand = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(UnityEngine.XR.XRNode.RightHand);
+        var pressed = rightHand.isValid
+                      && rightHand.TryGetFeatureValue(UnityEngine.XR.CommonUsages.secondaryButton, out var value)
+                      && value;
+        if (pressed && !m_WasPressed)
+            Toggle();
+        m_WasPressed = pressed;
     }
 
     void OnEnable()
@@ -107,10 +120,21 @@ public class InstructionsPanel : MonoBehaviour
     /// <summary>Altura de la cabeza sobre el suelo del XR Origin.</summary>
     float EyeHeight() => m_Head == null ? 0f : m_Head.position.y - (m_Origin != null ? m_Origin.transform.position.y : 0f);
 
-    void OnTogglePerformed(InputAction.CallbackContext context)
+    void OnTogglePerformed(InputAction.CallbackContext context) => Toggle();
+
+    /// <summary>
+    /// Abre o cierra el panel. Las pulsaciones a menos de 0,3 s se ignoran: el Input System y la lectura
+    /// directa del mando detectan la misma pulsación, y sin esto el panel se abriría y cerraría a la vez.
+    /// </summary>
+    void Toggle()
     {
+        if (Time.unscaledTime - m_LastToggleTime < 0.3f)
+            return;
+        m_LastToggleTime = Time.unscaledTime;
+
         if (m_Canvas.activeSelf) Close();
         else Open();
+        Debug.Log($"[Instrucciones] Botón B: panel {(m_Canvas.activeSelf ? "abierto" : "cerrado")}");
     }
 
     public void Open()
