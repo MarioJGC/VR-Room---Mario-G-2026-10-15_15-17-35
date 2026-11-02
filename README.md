@@ -48,6 +48,8 @@ Al iniciar la aplicación aparece delante de ti un panel con el resumen de los c
 ### Escalera al altillo
 Empieza en el centro del salón, junto al borde del altillo, y sube hacia la pared derecha hasta un rellano en la esquina. **Camina hacia ella** y subirás los peldaños (o teletranspórtate a un peldaño). Desde el rellano, gira a la izquierda para entrar al altillo.
 
+Las **barandillas** (escalera, altillo, rellano, trampilla y muro de la azotea) no se pueden atravesar: si caminas contra ellas, te quedas a su lado. Si sales por un borde sin barandilla, caes al piso de abajo.
+
 ### Maqueta del apartamento
 1. Pulsa el botón **☰** del mando izquierdo: aparece una maqueta del apartamento sobre tu mano.
 2. El **marcador azul** eres tú.

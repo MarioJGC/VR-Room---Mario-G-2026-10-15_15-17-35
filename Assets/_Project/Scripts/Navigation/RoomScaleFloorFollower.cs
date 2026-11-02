@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Climbing;
@@ -29,10 +30,20 @@ public class RoomScaleFloorFollower : MonoBehaviour
 
     [SerializeField] float m_Gravity = 9.81f;
 
+    [Header("Barandillas")]
+    [Tooltip("Objetos (por nombre) que no se pueden atravesar caminando: la escena se desplaza para mantener al usuario a este lado.")]
+    [SerializeField] string[] m_BarrierNames = { "Handrail", "Railing_Glass", "Roof_HatchRail_Glass", "Roof_Parapet" };
+
+    [Tooltip("Radio del cuerpo para chocar con las barandillas.")]
+    [SerializeField] float m_BodyRadius = 0.15f;
+
     XROrigin m_Origin;
     ClimbProvider m_Climb;
     float m_FallSpeed;
     readonly RaycastHit[] m_Hits = new RaycastHit[16];
+    readonly Collider[] m_Overlaps = new Collider[16];
+    readonly HashSet<Collider> m_Barriers = new HashSet<Collider>();
+    CapsuleCollider m_BodyProbe;
 
     static readonly Vector2[] k_FootprintOffsets =
     {
@@ -43,6 +54,7 @@ public class RoomScaleFloorFollower : MonoBehaviour
     {
         m_Origin = GetComponent<XROrigin>();
         m_Climb = FindAnyObjectByType<ClimbProvider>();
+        SetupBarriers();
     }
 
     void LateUpdate()
@@ -52,6 +64,8 @@ public class RoomScaleFloorFollower : MonoBehaviour
             m_FallSpeed = 0f;
             return;
         }
+
+        KeepOutOfBarriers();
 
         // Solo cuentan los suelos a los que se puede llegar de un paso (no se "salta" a un piso superior).
         var feetY = transform.position.y;
@@ -80,6 +94,81 @@ public class RoomScaleFloorFollower : MonoBehaviour
     {
         transform.position += Vector3.up * dy;
         Physics.SyncTransforms();
+    }
+
+    // ------------------------------------------------------------------ Barandillas
+
+    /// <summary>
+    /// Reúne los colliders de las barandillas (el pasamanos de la escalera no tenía; se le añade uno)
+    /// y crea una cápsula invisible que representa el cuerpo del usuario para medir los choques.
+    /// </summary>
+    void SetupBarriers()
+    {
+        foreach (var t in FindObjectsByType<Transform>(FindObjectsSortMode.None))
+        {
+            if (t.IsChildOf(transform) || !IsBarrierName(t.name))
+                continue;
+            if (!t.TryGetComponent<Collider>(out var barrier))
+                barrier = t.gameObject.AddComponent<BoxCollider>();
+            m_Barriers.Add(barrier);
+        }
+
+        var probe = new GameObject("Body Probe");
+        probe.transform.SetParent(transform, false);
+        m_BodyProbe = probe.AddComponent<CapsuleCollider>();
+        m_BodyProbe.isTrigger = true;           // solo sirve para medir; no empuja nada
+        m_BodyProbe.direction = 1;               // eje Y
+        m_BodyProbe.radius = m_BodyRadius;
+    }
+
+    bool IsBarrierName(string objectName)
+    {
+        foreach (var barrierName in m_BarrierNames)
+        {
+            if (objectName == barrierName)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Si el cuerpo (cápsula bajo la cabeza) se mete en una barandilla, desplaza el XR Origin en horizontal
+    /// lo justo para sacarlo: en la escena el usuario se queda a su lado aunque siga andando en la habitación.
+    /// </summary>
+    void KeepOutOfBarriers()
+    {
+        if (m_Barriers.Count == 0)
+            return;
+
+        var head = m_Origin.Camera.transform.position;
+        var feetY = transform.position.y + m_MaxStepUp;     // por encima de los escalones
+        var height = Mathf.Max(head.y - feetY, m_BodyRadius * 2f);
+        var probeTransform = m_BodyProbe.transform;
+        probeTransform.SetPositionAndRotation(new Vector3(head.x, feetY + height / 2f, head.z), Quaternion.identity);
+        m_BodyProbe.height = height;
+
+        var bottom = new Vector3(head.x, feetY + m_BodyRadius, head.z);
+        var top = new Vector3(head.x, feetY + height - m_BodyRadius, head.z);
+        var count = Physics.OverlapCapsuleNonAlloc(bottom, top, m_BodyRadius, m_Overlaps, ~0, QueryTriggerInteraction.Ignore);
+
+        var push = Vector3.zero;
+        for (var i = 0; i < count; i++)
+        {
+            var barrier = m_Overlaps[i];
+            if (!m_Barriers.Contains(barrier))
+                continue;
+            if (Physics.ComputePenetration(m_BodyProbe, probeTransform.position, probeTransform.rotation,
+                    barrier, barrier.transform.position, barrier.transform.rotation, out var direction, out var distance))
+            {
+                push += new Vector3(direction.x, 0f, direction.z) * distance;
+            }
+        }
+
+        if (push.sqrMagnitude > 0f)
+        {
+            transform.position += push;
+            Physics.SyncTransforms();
+        }
     }
 
     /// <summary>
