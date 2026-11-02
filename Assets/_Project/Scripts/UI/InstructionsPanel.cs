@@ -44,6 +44,11 @@ public class InstructionsPanel : MonoBehaviour
         "GRIP = botón lateral (dedo corazón)  ·  GATILLO = botón del dedo índice\n" +
         "Para volver a ver estas instrucciones, <b>pulsa el joystick izquierdo</b>";
 
+    // Altura mínima de los ojos sobre el suelo (si el seguimiento aún no está listo, la cámara está a ras de suelo).
+    const float k_MinEyeHeight = 1.4f;
+    const float k_TrackingTimeout = 5f;
+
+    XROrigin m_Origin;
     Transform m_Head;
     GameObject m_Canvas;
     InputAction m_ToggleAction;
@@ -59,8 +64,8 @@ public class InstructionsPanel : MonoBehaviour
 
     void Awake()
     {
-        var origin = FindAnyObjectByType<XROrigin>();
-        m_Head = origin != null ? origin.Camera.transform : Camera.main != null ? Camera.main.transform : null;
+        m_Origin = FindAnyObjectByType<XROrigin>();
+        m_Head = m_Origin != null ? m_Origin.Camera.transform : Camera.main != null ? Camera.main.transform : null;
         BuildCanvas();
 
         m_ToggleAction = new InputAction("Toggle Instructions", InputActionType.Button);
@@ -85,10 +90,21 @@ public class InstructionsPanel : MonoBehaviour
     IEnumerator Start()
     {
         m_Canvas.SetActive(false);
-        // Se espera un momento a que el seguimiento de la cabeza esté listo para colocarlo bien.
-        yield return new WaitForSeconds(0.5f);
+
+        // Se espera a que las gafas envíen la posición real de la cabeza (los ojos por encima de 1 m);
+        // si no llega en unos segundos (p. ej. en el simulador), se abre igualmente a altura de ojos.
+        var waited = 0f;
+        while (waited < k_TrackingTimeout && EyeHeight() < 1f)
+        {
+            waited += Time.deltaTime;
+            yield return null;
+        }
+        yield return new WaitForSeconds(0.3f);
         Open();
     }
+
+    /// <summary>Altura de la cabeza sobre el suelo del XR Origin.</summary>
+    float EyeHeight() => m_Head == null ? 0f : m_Head.position.y - (m_Origin != null ? m_Origin.transform.position.y : 0f);
 
     void OnTogglePerformed(InputAction.CallbackContext context)
     {
@@ -104,7 +120,10 @@ public class InstructionsPanel : MonoBehaviour
             if (forward.sqrMagnitude < 0.001f)
                 forward = Vector3.forward;
             forward.Normalize();
-            m_Canvas.transform.SetPositionAndRotation(m_Head.position + forward * k_Distance, Quaternion.LookRotation(forward, Vector3.up));
+            var position = m_Head.position + forward * k_Distance;
+            var floorY = m_Origin != null ? m_Origin.transform.position.y : 0f;
+            position.y = Mathf.Max(position.y, floorY + k_MinEyeHeight);
+            m_Canvas.transform.SetPositionAndRotation(position, Quaternion.LookRotation(forward, Vector3.up));
         }
         m_Canvas.SetActive(true);
     }
