@@ -20,6 +20,9 @@ public class LadderTopExit : MonoBehaviour
     [Tooltip("Altura mínima de la cabeza sobre el suelo de la azotea para poder salir al soltar.")]
     [SerializeField] float m_HeadAboveExit = 0.9f;
 
+    [Tooltip("Lo máximo que pueden subir los pies por encima del suelo de la azotea mientras se escala.")]
+    [SerializeField] float m_MaxAboveExit = 0.3f;
+
     [SerializeField] ClimbProvider m_Climb;
     [SerializeField] TeleportationProvider m_Teleport;
     [SerializeField] XROrigin m_Origin;
@@ -90,14 +93,35 @@ public class LadderTopExit : MonoBehaviour
 
     void OnEnable()
     {
-        if (m_Climb != null)
-            m_Climb.locomotionEnded += OnClimbEnded;
+        if (m_Climb == null)
+            return;
+        m_Climb.locomotionEnded += OnClimbEnded;
+        m_Climb.afterStepLocomotion += LimitClimbHeight;
     }
 
     void OnDisable()
     {
-        if (m_Climb != null)
-            m_Climb.locomotionEnded -= OnClimbEnded;
+        if (m_Climb == null)
+            return;
+        m_Climb.locomotionEnded -= OnClimbEnded;
+        m_Climb.afterStepLocomotion -= LimitClimbHeight;
+    }
+
+    /// <summary>
+    /// Mientras se escala, cada tirón de la mano sube al usuario sin límite: se corta a la altura de la azotea
+    /// para que no se pueda "volar" por encima del final de la escalera.
+    /// </summary>
+    void LimitClimbHeight(LocomotionProvider provider)
+    {
+        if (m_ExitPoint == null || m_Origin == null)
+            return;
+        var maxFeetY = m_ExitPoint.position.y + m_MaxAboveExit;
+        var origin = m_Origin.transform;
+        if (origin.position.y > maxFeetY)
+        {
+            origin.position = new Vector3(origin.position.x, maxFeetY, origin.position.z);
+            Physics.SyncTransforms();
+        }
     }
 
     void OnClimbEnded(LocomotionProvider provider)
