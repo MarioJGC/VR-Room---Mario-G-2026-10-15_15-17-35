@@ -8,7 +8,7 @@ using UnityEngine.XR.Interaction.Toolkit.UI;
 
 /// <summary>
 /// Panel de instrucciones que aparece delante del usuario al empezar, explicando los controles.
-/// Se cierra con el botón "Entendido" (rayo + gatillo) y se vuelve a abrir pulsando el joystick izquierdo.
+/// Se cierra con el botón "Entendido" (rayo + gatillo) y se abre o cierra con el botón B del mando derecho.
 ///
 /// Se crea solo al cargar la escena del apartamento (no hace falta añadirlo a mano):
 /// construye su propio lienzo 3D por código.
@@ -42,7 +42,7 @@ public class InstructionsPanel : MonoBehaviour
 
     const string k_FooterText =
         "GRIP = botón lateral (dedo corazón)  ·  GATILLO = botón del dedo índice\n" +
-        "Para volver a ver estas instrucciones, <b>pulsa el joystick izquierdo</b>";
+        "Para volver a ver estas instrucciones, pulsa el <b>botón B</b> del mando derecho";
 
     // Altura mínima de los ojos sobre el suelo (si el seguimiento aún no está listo, la cámara está a ras de suelo).
     const float k_MinEyeHeight = 1.4f;
@@ -68,9 +68,10 @@ public class InstructionsPanel : MonoBehaviour
         m_Head = m_Origin != null ? m_Origin.Camera.transform : Camera.main != null ? Camera.main.transform : null;
         BuildCanvas();
 
+        // Botón B del mando derecho (en el simulador: tecla 2 con el mando derecho activo).
         m_ToggleAction = new InputAction("Toggle Instructions", InputActionType.Button);
-        m_ToggleAction.AddBinding("<XRController>{LeftHand}/{Primary2DAxisClick}");
-        m_ToggleAction.AddBinding("<XRController>{LeftHand}/thumbstickClicked");
+        m_ToggleAction.AddBinding("<XRController>{RightHand}/{SecondaryButton}");
+        m_ToggleAction.AddBinding("<XRController>{RightHand}/secondaryButton");
     }
 
     void OnEnable()
